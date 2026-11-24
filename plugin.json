@@ -1,0 +1,64 @@
+{
+    "id": "devtools",
+    "name": "PLG_DEVTOOLS_NAME",
+    "description": "PLG_DEVTOOLS_DESCRIPTION",
+    "version": "0.1.0",
+    "author": "Reinhold Kainhofer",
+    "url": "https://github.com/kainhofer/admidio-devtools/",
+    "icon": "bi-tools",
+    "requires": {
+        "admidio": ">=6.0",
+        "php": ">=8.2",
+        "extensions": ["zlib"]
+    },
+    "autoload": {
+        "AdmidioPlugin\\DevTools\\": "src/"
+    },
+    "preferences": {
+        "section": "system",
+        "sequence": 900
+    },
+    "settings": {
+        "devtools_mail_mode": {
+            "type": "enum",
+            "default": "catch",
+            "values": {
+                "catch": "PLG_DEVTOOLS_MAIL_MODE_CATCH",
+                "redirect": "PLG_DEVTOOLS_MAIL_MODE_REDIRECT",
+                "off": "PLG_DEVTOOLS_MAIL_MODE_OFF"
+            },
+            "label": "PLG_DEVTOOLS_MAIL_MODE",
+            "description": "PLG_DEVTOOLS_MAIL_MODE_DESC"
+        },
+        "devtools_mail_redirect_address": {
+            "type": "string",
+            "default": "",
+            "label": "PLG_DEVTOOLS_MAIL_REDIRECT_ADDRESS",
+            "description": "PLG_DEVTOOLS_MAIL_REDIRECT_ADDRESS_DESC"
+        },
+        "devtools_hook_trace": {
+            "type": "boolean",
+            "default": false,
+            "label": "PLG_DEVTOOLS_HOOK_TRACE",
+            "description": "PLG_DEVTOOLS_HOOK_TRACE_DESC"
+        },
+        "devtools_exception_catcher": {
+            "type": "boolean",
+            "default": true,
+            "label": "PLG_DEVTOOLS_EXCEPTION_CATCHER",
+            "description": "PLG_DEVTOOLS_EXCEPTION_CATCHER_DESC"
+        },
+        "devtools_language_switcher": {
+            "type": "boolean",
+            "default": true,
+            "label": "PLG_DEVTOOLS_LANGUAGE_SWITCHER",
+            "description": "PLG_DEVTOOLS_LANGUAGE_SWITCHER_DESC"
+        },
+        "devtools_php_binary": {
+            "type": "string",
+            "default": "",
+            "label": "PLG_DEVTOOLS_PHP_BINARY",
+            "description": "PLG_DEVTOOLS_PHP_BINARY_DESC"
+        }
+    }
+}
