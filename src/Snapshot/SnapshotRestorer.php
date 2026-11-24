@@ -69,9 +69,11 @@ final class SnapshotRestorer
 
     /**
      * Restore the snapshot.
-     * @return array{written:int, deleted:int, unchanged:int}
+     * @param bool $keepLogins Keep the current sessions and "remember me" logins (see LoginKeeper);
+     *                         otherwise those of the snapshot apply and everybody is logged out.
+     * @return array{written:int, deleted:int, unchanged:int, logins:int}
      */
-    public function restore(string $name): array
+    public function restore(string $name, bool $keepLogins = true): array
     {
         @set_time_limit(0);
         @ignore_user_abort(true);
@@ -81,11 +83,20 @@ final class SnapshotRestorer
             $manifest = $this->verify($name);
             ($this->report)('PLG_DEVTOOLS_RESTORE_STEP_VERIFIED', array(count($manifest['files'])));
 
+            $loginKeeper = $keepLogins ? new LoginKeeper($this->store->getConfig()) : null;
+            $loginKeeper?->capture();
+
             (new DatabaseDumper($this->store->getConfig()))->restore(
                 $this->store->snapshotDirectory($name) . '/' . SnapshotStore::DATABASE_FILE,
                 (string)$manifest['dbFormat']
             );
             ($this->report)('PLG_DEVTOOLS_RESTORE_STEP_DATABASE', array(count($manifest['tables'])));
+
+            $logins = 0;
+            if ($loginKeeper !== null) {
+                $logins = $loginKeeper->restore();
+                ($this->report)('PLG_DEVTOOLS_RESTORE_STEP_LOGINS', array($logins));
+            }
 
             $result = $this->restoreFiles($manifest);
             ($this->report)('PLG_DEVTOOLS_RESTORE_STEP_FILES', array($result['written'], $result['deleted'], $result['unchanged']));
@@ -93,7 +104,7 @@ final class SnapshotRestorer
             $this->clearCaches();
             ($this->report)('PLG_DEVTOOLS_RESTORE_STEP_CACHES', array());
 
-            return $result;
+            return $result + array('logins' => $logins);
         } finally {
             $this->store->unlock();
         }

@@ -57,13 +57,15 @@ installation is broken, and restoring another snapshot is always possible. It as
 *restore key*, which the snapshot page shows (and which is stored in `restore-key.php` in the
 snapshot directory); bookmark the page. A restore replaces the tables, writes the files of the
 snapshot, deletes files the snapshot does not have (within its scope), clears the compiled
-templates and OPcache. Afterwards everybody has to log in again.
+templates and OPcache. The current logins (sessions and "remember me") are kept by default, so you
+stay logged in – as long as your user exists in the snapshot; untick *Keep the current logins* (or
+pass `--log-out`) to get the logins of the snapshot instead, which logs everybody out.
 
 On the command line:
 
 ```
 php plugins/devtools/modules/restore.php [--host=HOST] --list
-php plugins/devtools/modules/restore.php [--host=HOST] --snapshot=NAME
+php plugins/devtools/modules/restore.php [--host=HOST] --snapshot=NAME [--log-out]
 php admidio devtools:snapshot-create --label=baseline [--include-data]
 php admidio devtools:snapshot-list
 php admidio devtools:snapshot-delete NAME --yes

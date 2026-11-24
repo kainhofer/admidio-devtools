@@ -12,7 +12,7 @@
  * Access: $gDebug = true in config.php, and the restore key that the DevTools snapshot page shows.
  *
  * Command line: php plugins/devtools/modules/restore.php [--host=HOST] --list
- *               php plugins/devtools/modules/restore.php [--host=HOST] --snapshot=NAME
+ *               php plugins/devtools/modules/restore.php [--host=HOST] --snapshot=NAME [--log-out]
  * --host is needed for a config.php that chooses its values by $_SERVER['HTTP_HOST'].
  *
  * @copyright Reinhold Kainhofer
@@ -25,7 +25,7 @@ use AdmidioPlugin\DevTools\Snapshot\SnapshotConfig;
 use AdmidioPlugin\DevTools\Snapshot\SnapshotRestorer;
 use AdmidioPlugin\DevTools\Snapshot\SnapshotStore;
 
-foreach (array('SnapshotConfig', 'FileScanner', 'DatabaseDumper', 'SnapshotStore', 'SnapshotRestorer') as $devtoolsClass) {
+foreach (array('SnapshotConfig', 'FileScanner', 'DatabaseDumper', 'LoginKeeper', 'SnapshotStore', 'SnapshotRestorer') as $devtoolsClass) {
     require_once __DIR__ . '/../src/Snapshot/' . $devtoolsClass . '.php';
 }
 
@@ -71,7 +71,7 @@ $devtoolsRoot = dirname(__DIR__, 3);
 // command line
 // ------------------------------------------------------------------------------------------------
 if (PHP_SAPI === 'cli') {
-    $options = getopt('', array('list', 'snapshot:', 'host:', 'help'));
+    $options = getopt('', array('list', 'snapshot:', 'host:', 'log-out', 'help'));
     if (isset($options['host'])) {
         // for a config.php that chooses its values by host, like the --host of the Admidio CLI
         $_SERVER['HTTP_HOST'] = (string)$options['host'];
@@ -84,8 +84,8 @@ if (PHP_SAPI === 'cli') {
             $restorer = new SnapshotRestorer($store, static function (string $key, array $params): void {
                 echo devtoolsRestoreText($key, $params), PHP_EOL;
             });
-            $restorer->restore((string)$options['snapshot']);
-            echo devtoolsRestoreText('PLG_DEVTOOLS_RESTORE_DONE'), PHP_EOL;
+            $restorer->restore((string)$options['snapshot'], !isset($options['log-out']));
+            echo devtoolsRestoreText(isset($options['log-out']) ? 'PLG_DEVTOOLS_RESTORE_DONE_LOGGED_OUT' : 'PLG_DEVTOOLS_RESTORE_DONE'), PHP_EOL;
             exit(0);
         }
 
@@ -96,7 +96,7 @@ if (PHP_SAPI === 'cli') {
             exit(0);
         }
 
-        echo 'Usage: php ', $argv[0], ' [--host=HOST] --list | --snapshot=NAME', PHP_EOL;
+        echo 'Usage: php ', $argv[0], ' [--host=HOST] --list | --snapshot=NAME [--log-out]', PHP_EOL;
         exit(isset($options['help']) ? 0 : 2);
     } catch (Throwable $exception) {
         fwrite(STDERR, $exception->getMessage() . PHP_EOL);
@@ -166,9 +166,10 @@ try {
                 $restorer = new SnapshotRestorer($store, static function (string $textKey, array $params) use (&$progress): void {
                     $progress[] = devtoolsRestoreText($textKey, $params);
                 });
-                $restorer->restore((string)($_POST['snapshot'] ?? ''));
+                $keepLogins = !empty($_POST['keep_logins']);
+                $restorer->restore((string)($_POST['snapshot'] ?? ''), $keepLogins);
                 $restored = true;
-                $messages[] = array('success', devtoolsRestoreText('PLG_DEVTOOLS_RESTORE_DONE'));
+                $messages[] = array('success', devtoolsRestoreText($keepLogins ? 'PLG_DEVTOOLS_RESTORE_DONE' : 'PLG_DEVTOOLS_RESTORE_DONE_LOGGED_OUT'));
             }
 
             $snapshots = $store->list();
@@ -185,7 +186,7 @@ try {
     }
 }
 
-$loginUrl = '../../../system/login.php';
+$loginUrl = '../../../modules/overview.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -226,7 +227,7 @@ $loginUrl = '../../../system/login.php';
     <?php } ?>
 
     <?php if ($restored) { ?>
-        <p><a href="<?php echo devtoolsRestoreEscape($loginUrl); ?>"><?php echo devtoolsRestoreEscape(devtoolsRestoreText('PLG_DEVTOOLS_RESTORE_TO_LOGIN')); ?></a></p>
+        <p><a href="<?php echo devtoolsRestoreEscape($loginUrl); ?>"><?php echo devtoolsRestoreEscape(devtoolsRestoreText('PLG_DEVTOOLS_RESTORE_TO_ADMIDIO')); ?></a></p>
     <?php } ?>
 
     <?php if (!$authorized && isset($key) && $key !== null) { ?>
@@ -265,6 +266,7 @@ $loginUrl = '../../../system/login.php';
                     <?php } ?>
                     </tbody>
                 </table>
+                <p><label><input type="checkbox" name="keep_logins" value="1" checked> <?php echo devtoolsRestoreEscape(devtoolsRestoreText('PLG_DEVTOOLS_RESTORE_KEEP_LOGINS')); ?></label></p>
                 <p><label><input type="checkbox" name="confirm" value="1" required> <?php echo devtoolsRestoreEscape(devtoolsRestoreText('PLG_DEVTOOLS_RESTORE_CONFIRM')); ?></label></p>
                 <button type="submit"><?php echo devtoolsRestoreEscape(devtoolsRestoreText('PLG_DEVTOOLS_RESTORE_BUTTON')); ?></button>
             </form>
