@@ -38,7 +38,8 @@ final class PreferencesDiff
     }
 
     /**
-     * @return array<int,array{name:string, owner:string, status:string, default:?string, value:?string, sensitive:bool}>
+     * **notLoaded**: the definition comes from the manifest of a plugin that is not loaded here.
+     * @return array<int,array{name:string, owner:string, status:string, default:?string, value:?string, sensitive:bool, notLoaded:bool}>
      */
     public function compare(int $organizationId): array
     {
@@ -46,11 +47,40 @@ final class PreferencesDiff
         $defaults = array();
         try {
             // a default provider may need something this request does not have
-
             $defaults = PreferenceDefinitions::defaults();
         } catch (Throwable) {
             foreach ($definitions as $name => $definition) {
                 $defaults[$name] = isset($definition['default']) ? (string)$definition['default'] : null;
+            }
+        }
+
+        // Only the plugins loaded in this request have registered their settings. The settings of
+        // every other plugin - disabled here, or enabled only in another organization - come from
+        // their manifests, converted the way the plugin loader registers them.
+        $fromManifest = array();
+        foreach (PluginRegistry::all() as $plugin) {
+            if (!$plugin->isValid()) {
+                continue;
+            }
+            $enabledSetting = $plugin->getEnabledSettingName();
+            if (!array_key_exists($enabledSetting, $definitions)) {
+                $definitions[$enabledSetting] = array('type' => 'bool');
+                $defaults[$enabledSetting] = PluginRegistry::isBuiltIn($plugin->id) ? '1' : '0';
+                $fromManifest[$enabledSetting] = true;
+            }
+            foreach ($plugin->settings as $name => $definition) {
+                if (array_key_exists($name, $definitions)) {
+                    continue;
+                }
+                $default = $definition['default'] ?? '';
+                if (is_bool($default)) {
+                    $default = $default ? '1' : '0';
+                } elseif (is_array($default)) {
+                    $default = implode(',', $default);
+                }
+                $definitions[$name] = $definition;
+                $defaults[$name] = (string)$default;
+                $fromManifest[$name] = true;
             }
         }
 
@@ -89,7 +119,8 @@ final class PreferencesDiff
                 'status' => $status,
                 'default' => $sensitive && $default !== null && $default !== '' ? self::MASK : $default,
                 'value' => $sensitive && $value !== null && $value !== '' ? self::MASK : $value,
-                'sensitive' => $sensitive
+                'sensitive' => $sensitive,
+                'notLoaded' => isset($fromManifest[$name])
             );
         }
         return $rows;

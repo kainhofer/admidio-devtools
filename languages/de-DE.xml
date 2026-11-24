@@ -81,11 +81,12 @@
   <string name="PLG_DEVTOOLS_PHP_BINARY_DESC">Pfad des PHP-Programms, mit dem die Admidio-Kommandozeile aus dem Browser ausgeführt wird. Leer: wird automatisch gesucht.</string>
   <string name="PLG_DEVTOOLS_PREFERENCES_DIFF">Einstellungs-Vergleich</string>
   <string name="PLG_DEVTOOLS_PREFERENCES_DIFF_DESC">Die Einstellungen einer Organisation im Vergleich mit ihren Standardwerten: geänderte Werte, fehlende Zeilen und Zeilen, die niemand mehr definiert.</string>
-  <string name="PLG_DEVTOOLS_PREFERENCES_SHOW_ALL">Auch Einstellungen mit Standardwert anzeigen</string>
+  <string name="PLG_DEVTOOLS_PREFERENCES_STATUS_DESC">Klicken Sie auf einen Status, um seine Einstellungen ein- oder auszublenden.</string>
   <string name="PLG_DEVTOOLS_PREFERENCE_CHANGED">Geändert</string>
   <string name="PLG_DEVTOOLS_PREFERENCE_DEFAULT">Standard</string>
   <string name="PLG_DEVTOOLS_PREFERENCE_DEFAULT_VALUE">Standardwert</string>
   <string name="PLG_DEVTOOLS_PREFERENCE_MISSING">Fehlt</string>
+  <string name="PLG_DEVTOOLS_PREFERENCE_NOT_LOADED">hier nicht geladen; Standard aus seiner plugin.json</string>
   <string name="PLG_DEVTOOLS_PREFERENCE_STATUS">Status</string>
   <string name="PLG_DEVTOOLS_PREFERENCE_UNKNOWN">Unbekannt</string>
   <string name="PLG_DEVTOOLS_PREFERENCE_VALUE">Wert</string>
@@ -147,6 +148,7 @@
   <string name="PLG_DEVTOOLS_SNAPSHOT_SCOPE">Umfang</string>
   <string name="PLG_DEVTOOLS_SNAPSHOT_SCOPE_CODE">Code und Konfiguration</string>
   <string name="PLG_DEVTOOLS_SNAPSHOT_SCOPE_DATA">Code, Konfiguration und adm_my_files</string>
+  <string name="PLG_DEVTOOLS_SORT_DESC">Klicken Sie auf eine Spalte, um danach zu sortieren, mit Umschalt+Klick als weiteres Sortierkriterium, nochmals klicken kehrt die Richtung um.</string>
   <string name="PLG_DEVTOOLS_STATUS">Status</string>
   <string name="PLG_DEVTOOLS_TASKS">CLI-Aufgaben</string>
   <string name="PLG_DEVTOOLS_TASKS_ACTING">Befehle handeln als #VAR1# in der Organisation #VAR2#, wenn die Befehlszeile nichts anderes angibt.</string>

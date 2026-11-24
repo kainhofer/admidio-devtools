@@ -34,3 +34,23 @@
     border-radius: .375rem;
     background: #fff;
 }
+
+/* preferences diff: fixed column widths, names break only after underscores, long values anywhere */
+.admidio-devtools-preferences {
+    table-layout: fixed;
+}
+
+.admidio-devtools-preferences .admidio-devtools-name code {
+    word-break: normal;
+    overflow-wrap: normal;
+}
+
+.admidio-devtools-preferences .admidio-devtools-value {
+    overflow-wrap: anywhere;
+}
+
+.admidio-devtools-preferences th[data-devtools-sort] {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}

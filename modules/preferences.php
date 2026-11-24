@@ -5,7 +5,8 @@
  *
  * Parameters:
  * org : ID of the organization (default: the current one)
- * all : 1 = also the preferences that have their default value
+ *
+ * All rows are sent; filtering by status, owner and text and sorting happen in the browser.
  *
  * @copyright Reinhold Kainhofer
  * @see https://www.admidio.org/
@@ -24,7 +25,6 @@ try {
     DevTools::requireAccess();
 
     $getOrganization = admFuncVariableIsValid($_GET, 'org', 'int', array('defaultValue' => (int)$gCurrentOrgId));
-    $getAll = admFuncVariableIsValid($_GET, 'all', 'bool', array('defaultValue' => false));
 
     $organizations = (new OrganizationSwitcher($gDb))->getOrganizations((int)$gCurrentUserId, (int)$gCurrentOrgId);
     $organizationIds = array_column($organizations, 'id');
@@ -34,16 +34,21 @@ try {
 
     $rows = (new PreferencesDiff($gDb))->compare($getOrganization);
     $counts = array_count_values(array_column($rows, 'status'));
-    if (!$getAll) {
-        $rows = array_values(array_filter($rows, static fn(array $row): bool => $row['status'] !== PreferencesDiff::STATUS_DEFAULT));
-    }
+    $owners = array_values(array_unique(array_column($rows, 'owner')));
+    sort($owners, SORT_STRING);
 
     $page = DevTools::createPage('preferences.php', 'plugin.devtools.preferences.tpl');
     $page->assignSmartyVariable('rows', $rows);
     $page->assignSmartyVariable('counts', $counts);
     $page->assignSmartyVariable('organizations', $organizations);
     $page->assignSmartyVariable('organization', $getOrganization);
-    $page->assignSmartyVariable('showAll', $getAll);
+    $page->assignSmartyVariable('owners', $owners);
+    $page->assignSmartyVariable('statuses', array(
+        PreferencesDiff::STATUS_CHANGED => array('label' => $gL10n->get('PLG_DEVTOOLS_PREFERENCE_CHANGED'), 'class' => 'primary', 'selected' => true),
+        PreferencesDiff::STATUS_MISSING => array('label' => $gL10n->get('PLG_DEVTOOLS_PREFERENCE_MISSING'), 'class' => 'warning', 'selected' => true),
+        PreferencesDiff::STATUS_UNKNOWN => array('label' => $gL10n->get('PLG_DEVTOOLS_PREFERENCE_UNKNOWN'), 'class' => 'danger', 'selected' => true),
+        PreferencesDiff::STATUS_DEFAULT => array('label' => $gL10n->get('PLG_DEVTOOLS_PREFERENCE_DEFAULT'), 'class' => 'secondary', 'selected' => false)
+    ));
     $page->assignSmartyVariable('formUrl', DevTools::getPlugin()->getUrl('preferences.php'));
     $page->show();
 } catch (Throwable $e) {

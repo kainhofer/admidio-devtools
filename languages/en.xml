@@ -81,11 +81,12 @@
   <string name="PLG_DEVTOOLS_PHP_BINARY_DESC">Path of the PHP binary that runs the Admidio command line from the browser. Empty: found automatically.</string>
   <string name="PLG_DEVTOOLS_PREFERENCES_DIFF">Preferences diff</string>
   <string name="PLG_DEVTOOLS_PREFERENCES_DIFF_DESC">The preferences of an organization compared with their defaults: changed values, missing rows, and rows nobody defines any more.</string>
-  <string name="PLG_DEVTOOLS_PREFERENCES_SHOW_ALL">Also show preferences with their default value</string>
+  <string name="PLG_DEVTOOLS_PREFERENCES_STATUS_DESC">Click a status to show or hide its preferences.</string>
   <string name="PLG_DEVTOOLS_PREFERENCE_CHANGED">Changed</string>
   <string name="PLG_DEVTOOLS_PREFERENCE_DEFAULT">Default</string>
   <string name="PLG_DEVTOOLS_PREFERENCE_DEFAULT_VALUE">Default value</string>
   <string name="PLG_DEVTOOLS_PREFERENCE_MISSING">Missing</string>
+  <string name="PLG_DEVTOOLS_PREFERENCE_NOT_LOADED">not loaded here; default from its plugin.json</string>
   <string name="PLG_DEVTOOLS_PREFERENCE_STATUS">Status</string>
   <string name="PLG_DEVTOOLS_PREFERENCE_UNKNOWN">Unknown</string>
   <string name="PLG_DEVTOOLS_PREFERENCE_VALUE">Value</string>
@@ -147,6 +148,7 @@
   <string name="PLG_DEVTOOLS_SNAPSHOT_SCOPE">Scope</string>
   <string name="PLG_DEVTOOLS_SNAPSHOT_SCOPE_CODE">Code and configuration</string>
   <string name="PLG_DEVTOOLS_SNAPSHOT_SCOPE_DATA">Code, configuration and adm_my_files</string>
+  <string name="PLG_DEVTOOLS_SORT_DESC">Click a column to sort by it, Shift+click to add it as a further sort key, click again to reverse.</string>
   <string name="PLG_DEVTOOLS_STATUS">Status</string>
   <string name="PLG_DEVTOOLS_TASKS">CLI tasks</string>
   <string name="PLG_DEVTOOLS_TASKS_ACTING">Commands act as #VAR1# in the organization #VAR2#, unless the command line says otherwise.</string>
