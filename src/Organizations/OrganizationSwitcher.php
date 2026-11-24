@@ -3,6 +3,9 @@ namespace AdmidioPlugin\DevTools\Organizations;
 
 use Admidio\Infrastructure\Database;
 use Admidio\Infrastructure\Exception;
+use Admidio\Session\Entity\AutoLogin;
+use Admidio\Session\Entity\Session;
+use ReflectionProperty;
 
 /**
  ***********************************************************************************************
@@ -11,7 +14,8 @@ use Admidio\Infrastructure\Exception;
  * Only organizations in which the user has an active membership are offered - the same ones the
  * login dialog would let them log in to. The switch sets the organization of the session and
  * discards the objects the session keeps (organization, preferences, profile fields, user, menu,
- * language), so the next request builds all of them anew for the new organization.
+ * language), so the next request builds all of them anew for the new organization. With an
+ * auto-login ("remember me") the auto-login record is moved to the new organization as well.
  *
  * @copyright Reinhold Kainhofer
  * @see https://www.admidio.org/
@@ -81,6 +85,20 @@ final class OrganizationSwitcher
 
         $gCurrentSession->setValue('ses_org_id', $target['id']);
         $gCurrentSession->save();
+
+        /*
+         * A session of a "remember me" login takes its organization from the auto-login record
+         * (Session::getOrganizationId()), and the next request would write that one back into the
+         * session. The record moves along; the login dialog stores the chosen organization there
+         * as well. The core offers no access to it, so it is read from the protected property.
+         */
+        $property = new ReflectionProperty(Session::class, 'mAutoLogin');
+        $autoLogin = $property->isInitialized($gCurrentSession) ? $property->getValue($gCurrentSession) : null;
+        if ($autoLogin instanceof AutoLogin && (int)$autoLogin->getValue('atl_id') > 0) {
+            $autoLogin->setValue('atl_org_id', $target['id']);
+            $autoLogin->save();
+        }
+
         $gCurrentSession->initializeObjects();
     }
 }
