@@ -13,8 +13,11 @@ use RuntimeException;
  * because the restore page has to work when the database or the code of the installation is broken.
  * Like every class below src/Snapshot it uses no Admidio class.
  *
- * The snapshot directory is adm_my_files/snapshots/ unless config.php names another one:
- *     $gDevToolsSnapshotPath = '/var/lib/admidio-snapshots';
+ * The snapshot directory is, in this order,
+ * - the one config.php names: $gDevToolsSnapshotPath = '/var/lib/admidio-snapshots';
+ * - the one chosen on the snapshot page, kept in adm_my_files/devtools/snapshot-path.php (a folder
+ *   no snapshot contains, so a restore never changes it),
+ * - adm_my_files/snapshots/.
  * A relative path is resolved inside adm_my_files.
  *
  * @copyright Reinhold Kainhofer
@@ -26,6 +29,11 @@ final class SnapshotConfig
 {
     public const DATA_FOLDER = 'adm_my_files';
     public const DEFAULT_SNAPSHOT_FOLDER = 'snapshots';
+    public const POINTER_FILE = 'devtools/snapshot-path.php';
+
+    public const SOURCE_CONFIG = 'config';
+    public const SOURCE_PAGE = 'page';
+    public const SOURCE_DEFAULT = 'default';
 
     private ?PDO $pdo = null;
 
@@ -39,7 +47,8 @@ final class SnapshotConfig
         public readonly string $dbUser,
         public readonly string $dbPassword,
         public readonly string $tablePrefix,
-        public readonly bool $debug
+        public readonly bool $debug,
+        public readonly string $snapshotPathSource = self::SOURCE_DEFAULT
     ) {
     }
 
@@ -61,6 +70,11 @@ final class SnapshotConfig
 
         $port = $values['g_adm_port'] ?? null;
         $snapshotPath = trim((string)($values['gDevToolsSnapshotPath'] ?? ''));
+        $source = self::SOURCE_CONFIG;
+        if ($snapshotPath === '') {
+            $snapshotPath = self::readPointer($rootPath);
+            $source = $snapshotPath === '' ? self::SOURCE_DEFAULT : self::SOURCE_PAGE;
+        }
 
         return new self(
             $rootPath,
@@ -72,7 +86,8 @@ final class SnapshotConfig
             (string)($values['g_adm_usr'] ?? ''),
             (string)($values['g_adm_pw'] ?? ''),
             (string)($values['g_tbl_praefix'] ?? 'adm'),
-            !empty($values['gDebug'])
+            !empty($values['gDebug']),
+            $source
         );
     }
 
@@ -88,6 +103,41 @@ final class SnapshotConfig
             unset($__file);
             return get_defined_vars();
         })($configFile);
+    }
+
+    /**
+     * The snapshot directory chosen on the snapshot page, or an empty string.
+     */
+    public static function readPointer(string $rootPath): string
+    {
+        $file = $rootPath . '/' . self::DATA_FOLDER . '/' . self::POINTER_FILE;
+        if (!is_file($file)) {
+            return '';
+        }
+        $path = include $file;
+        return is_string($path) ? trim($path) : '';
+    }
+
+    /**
+     * Keep the snapshot directory chosen on the snapshot page; an empty path returns to the default.
+     */
+    public static function writePointer(string $rootPath, string $path): void
+    {
+        $file = $rootPath . '/' . self::DATA_FOLDER . '/' . self::POINTER_FILE;
+        if ($path === '') {
+            @unlink($file);
+            return;
+        }
+        if (!is_dir(dirname($file)) && !mkdir(dirname($file), 0770, true) && !is_dir(dirname($file))) {
+            throw new RuntimeException('The directory ' . dirname($file) . ' cannot be created.');
+        }
+        $content = "<?php\n// Snapshot directory of the DevTools plugin, chosen on its snapshot page.\nreturn " . var_export($path, true) . ";\n";
+        if (file_put_contents($file, $content, LOCK_EX) === false) {
+            throw new RuntimeException('The file ' . $file . ' cannot be written.');
+        }
+        if (function_exists('opcache_invalidate')) {
+            @opcache_invalidate($file, true);
+        }
     }
 
     /**

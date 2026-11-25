@@ -1,9 +1,13 @@
 {include file='plugin.devtools.nav.tpl'}
 
 <p>{$l10n->get('PLG_DEVTOOLS_HOOK_TRACES_DESC')}</p>
-{if !$enabled}
-    <div class="alert alert-info">{$l10n->get('PLG_DEVTOOLS_HOOK_TRACE_DISABLED')}</div>
-{/if}
+<form method="post" action="{$toggleUrl}" class="alert {if $enabled}alert-success{else}alert-secondary{/if} d-flex align-items-center justify-content-between">
+    <input type="hidden" name="adm_csrf_token" value="{$devtoolsCsrfToken}">
+    <span>{if $enabled}{$l10n->get('PLG_DEVTOOLS_HOOK_TRACE_ON')}{else}{$l10n->get('PLG_DEVTOOLS_HOOK_TRACE_OFF')}{/if}
+        <small class="d-block text-muted">{$l10n->get('PLG_DEVTOOLS_SETTING_ORGANIZATION')}</small></span>
+    <button type="submit" class="btn btn-sm {if $enabled}btn-outline-danger{else}btn-success{/if}"><i class="bi {if $enabled}bi-stop-fill{else}bi-record-fill{/if}"></i>
+        {if $enabled}{$l10n->get('PLG_DEVTOOLS_SWITCH_OFF')}{else}{$l10n->get('PLG_DEVTOOLS_SWITCH_ON')}{/if}</button>
+</form>
 
 {if $trace}
     <p><a href="{$listUrl}"><i class="bi bi-arrow-left"></i> {$l10n->get('PLG_DEVTOOLS_HOOK_TRACES')}</a></p>

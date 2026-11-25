@@ -187,6 +187,8 @@ try {
 }
 
 $loginUrl = '../../../modules/overview.php';
+// the snapshot page links here with the snapshot to restore
+$preselected = (string)($_POST['snapshot'] ?? $_GET['snapshot'] ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -257,8 +259,8 @@ $loginUrl = '../../../modules/overview.php';
                     <tbody>
                     <?php foreach ($snapshots as $index => $snapshot) { ?>
                         <tr>
-                            <td><input type="radio" name="snapshot" id="snapshot_<?php echo $index; ?>" value="<?php echo devtoolsRestoreEscape($snapshot['name']); ?>" required></td>
-                            <td><label for="snapshot_<?php echo $index; ?>"><?php echo devtoolsRestoreEscape($snapshot['name']); ?></label></td>
+                            <td><input type="radio" name="snapshot" id="snapshot_<?php echo $index; ?>" value="<?php echo devtoolsRestoreEscape($snapshot['name']); ?>" required<?php echo $snapshot['name'] === $preselected ? ' checked' : ''; ?>></td>
+                            <td><label for="snapshot_<?php echo $index; ?>"><strong><?php echo devtoolsRestoreEscape($snapshot['label'] !== '' ? $snapshot['label'] : $snapshot['name']); ?></strong><br><span class="muted"><?php echo devtoolsRestoreEscape($snapshot['name']); ?></span></label></td>
                             <td><?php echo devtoolsRestoreEscape($snapshot['version']); ?></td>
                             <td><?php echo devtoolsRestoreEscape($snapshot['comment']); ?></td>
                             <td><?php echo devtoolsRestoreEscape(devtoolsRestoreText($snapshot['includeData'] ? 'PLG_DEVTOOLS_SNAPSHOT_SCOPE_DATA' : 'PLG_DEVTOOLS_SNAPSHOT_SCOPE_CODE')); ?></td>

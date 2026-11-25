@@ -1,7 +1,25 @@
 {include file='plugin.devtools.nav.tpl'}
 
 <p>{$l10n->get('PLG_DEVTOOLS_MAILS_DESC')}</p>
-<div class="alert alert-{if $mailMode == 'off'}warning{else}info{/if}">{$l10n->get('PLG_DEVTOOLS_MAIL_MODE')}: <strong>{$mailModeText|escape}</strong></div>
+<form method="post" action="{$settingsUrl}" class="card card-body mb-4 {if $mailMode == 'off'}border-warning{/if}">
+    <input type="hidden" name="adm_csrf_token" value="{$devtoolsCsrfToken}">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-5">
+            <label class="form-label" for="devtools_mail_mode">{$l10n->get('PLG_DEVTOOLS_MAIL_MODE')}</label>
+            <select class="form-select" id="devtools_mail_mode" name="mail_mode">
+                {foreach $mailModes as $value => $label}
+                    <option value="{$value}"{if $value == $mailMode} selected{/if}>{$label|escape}</option>
+                {/foreach}
+            </select>
+        </div>
+        <div class="col-md-5">
+            <label class="form-label" for="devtools_redirect_address">{$l10n->get('PLG_DEVTOOLS_MAIL_REDIRECT_ADDRESS')}</label>
+            <input class="form-control" type="email" id="devtools_redirect_address" name="redirect_address" value="{$redirectAddress|escape}">
+        </div>
+        <div class="col-md-2"><button type="submit" class="btn btn-primary w-100"><i class="bi bi-check-lg"></i> {$l10n->get('SYS_SAVE')}</button></div>
+    </div>
+    <div class="form-text">{$l10n->get('PLG_DEVTOOLS_MAIL_MODE_DESC')} {$l10n->get('PLG_DEVTOOLS_SETTING_ORGANIZATION')}</div>
+</form>
 
 {if $mail}
     <p><a href="{$listUrl}"><i class="bi bi-arrow-left"></i> {$l10n->get('PLG_DEVTOOLS_MAILS')}</a></p>

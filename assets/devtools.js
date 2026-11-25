@@ -7,7 +7,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         input.addEventListener('input', function () {
             var needle = input.value.trim().toLowerCase();
-            table.querySelectorAll('tbody tr').forEach(function (row) {
+            // a table whose bodies are groups (one hook with its callbacks) is filtered by group
+            var groups = table.querySelectorAll('tbody[data-devtools-group]');
+            table.querySelectorAll(groups.length > 0 ? 'tbody[data-devtools-group]' : 'tbody tr').forEach(function (row) {
                 row.style.display = needle === '' || row.textContent.toLowerCase().indexOf(needle) !== -1 ? '' : 'none';
             });
         });
@@ -133,4 +135,44 @@ document.addEventListener('DOMContentLoaded', function () {
 
     applySort();
     applyFilter();
+});
+
+/*
+ * Console: a click on a command puts it into the command line; the search filters the commands and
+ * opens the areas that contain a match.
+ */
+document.addEventListener('DOMContentLoaded', function () {
+    var input = document.getElementById('devtools_command');
+    document.querySelectorAll('[data-devtools-use]').forEach(function (link) {
+        link.addEventListener('click', function (event) {
+            event.preventDefault();
+            input.value = link.getAttribute('data-devtools-use') + ' ';
+            input.focus();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    });
+
+    var search = document.getElementById('devtools_console_search');
+    if (!search) {
+        return;
+    }
+    search.addEventListener('input', function () {
+        var needle = search.value.trim().toLowerCase();
+        document.querySelectorAll('[data-devtools-area]').forEach(function (area) {
+            var matches = 0;
+            area.querySelectorAll('[data-devtools-command]').forEach(function (command) {
+                var show = needle === '' || command.textContent.toLowerCase().indexOf(needle) !== -1;
+                command.style.display = show ? '' : 'none';
+                if (show) {
+                    matches++;
+                }
+            });
+            area.style.display = matches > 0 ? '' : 'none';
+            var collapse = area.querySelector('.accordion-collapse');
+            var button = area.querySelector('.accordion-button');
+            var open = needle !== '' && matches > 0;
+            collapse.classList.toggle('show', open);
+            button.classList.toggle('collapsed', !open);
+        });
+    });
 });

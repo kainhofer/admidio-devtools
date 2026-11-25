@@ -230,6 +230,70 @@ final class SnapshotStore
     }
 
     /**
+     * Change the label and the comment of a snapshot. Its name stays as it is.
+     */
+    public function update(string $name, string $label, string $comment): void
+    {
+        $manifest = $this->read($name);
+        $this->lock();
+        try {
+            $manifest['label'] = $label;
+            $manifest['comment'] = $comment;
+            file_put_contents(
+                $this->snapshotDirectory($name) . '/' . self::MANIFEST_FILE,
+                json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                LOCK_EX
+            );
+        } finally {
+            $this->unlock();
+        }
+    }
+
+    /**
+     * Move all snapshots, the object store and the restore key into another directory, which must
+     * not exist or be empty.
+     */
+    public function moveTo(string $target): void
+    {
+        $source = $this->config->snapshotPath;
+        $target = rtrim(str_replace('\\', '/', $target), '/');
+        if (!is_dir($source) || $target === $source) {
+            return;
+        }
+        if (is_dir($target) && count(scandir($target) ?: array()) > 2) {
+            throw new RuntimeException('The directory ' . $target . ' is not empty.');
+        }
+        if (is_dir($target)) {
+            rmdir($target);
+        } elseif (!is_dir(dirname($target)) && !mkdir(dirname($target), 0770, true) && !is_dir(dirname($target))) {
+            throw new RuntimeException('The directory ' . dirname($target) . ' cannot be created.');
+        }
+
+        // rename() fails across file systems; then the files are copied and the originals removed
+        if (!@rename($source, $target)) {
+            self::copyTree($source, $target);
+            self::removeTree($source);
+        }
+    }
+
+    private static function copyTree(string $source, string $target): void
+    {
+        if (!is_dir($target) && !mkdir($target, 0770, true) && !is_dir($target)) {
+            throw new RuntimeException('The directory ' . $target . ' cannot be created.');
+        }
+        foreach (scandir($source) ?: array() as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+            if (is_dir($source . '/' . $entry)) {
+                self::copyTree($source . '/' . $entry, $target . '/' . $entry);
+            } elseif (!copy($source . '/' . $entry, $target . '/' . $entry)) {
+                throw new RuntimeException('The file ' . $source . '/' . $entry . ' cannot be copied.');
+            }
+        }
+    }
+
+    /**
      * Delete a snapshot and every object no other snapshot needs.
      */
     public function delete(string $name): void

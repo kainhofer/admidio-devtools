@@ -27,13 +27,34 @@ try {
 
     $available = HookRegistry::isAvailable();
     $registrations = $available ? HookRegistry::getRegistrations() : array();
-    foreach ($registrations as &$registration) {
-        $registration['file'] = $registration['file'] === '' ? '' : HookRegistry::relativePath($registration['file']) . ':' . $registration['line'];
-    }
-    unset($registration);
-
     $scanner = new DispatchSiteScanner(ADMIDIO_PATH);
-    $sites = $getView === 'registrations' ? array() : $scanner->getSites();
+    $sites = $scanner->getSites();
+
+    // one group per hook: its callbacks in call order and the places that dispatch it
+    $hooks = array();
+    foreach ($registrations as $registration) {
+        $registration['location'] = $registration['file'] === '' ? '' : HookRegistry::relativePath($registration['file']) . ':' . $registration['line'];
+        $hooks[$registration['hook']]['callbacks'][] = $registration;
+    }
+    foreach ($sites as $site) {
+        $hooks[$site['hook']]['sites'][] = $site;
+    }
+    foreach ($hooks as $name => &$hook) {
+        $hook['name'] = (string)$name;
+        $hook['callbacks'] = $hook['callbacks'] ?? array();
+        $hook['sites'] = $hook['sites'] ?? array();
+        $hook['kinds'] = array_values(array_unique(array_merge(array_column($hook['callbacks'], 'type'), array_column($hook['sites'], 'kind'))));
+        $hook['owners'] = array_values(array_unique(array_column($hook['callbacks'], 'owner')));
+        $hook['dynamic'] = $hook['sites'] !== array() && !in_array(false, array_column($hook['sites'], 'dynamic'), true);
+        $hook['entity'] = DispatchSiteScanner::isEntityHook((string)$name);
+    }
+    unset($hook);
+    ksort($hooks, SORT_STRING);
+
+    // the registrations view shows the hooks with callbacks, the sites view those that are dispatched
+    $hooks = array_values(array_filter($hooks, static fn(array $hook): bool => $getView === 'registrations'
+        ? $hook['callbacks'] !== array() : $hook['sites'] !== array()));
+
     $warnings = array();
     if ($getView === 'warnings') {
         foreach ($scanner->getWarnings($registrations) as $warning) {
@@ -50,8 +71,8 @@ try {
     $page->assignSmartyVariable('available', $available);
     $page->assignSmartyVariable('view', $getView);
     $page->assignSmartyVariable('views', $views);
-    $page->assignSmartyVariable('registrations', $registrations);
-    $page->assignSmartyVariable('sites', $sites);
+    $page->assignSmartyVariable('hooks', $hooks);
+    $page->assignSmartyVariable('callbackCount', count($registrations));
     $page->assignSmartyVariable('warnings', $warnings);
     $page->show();
 } catch (Throwable $e) {

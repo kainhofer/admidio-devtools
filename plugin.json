@@ -2,14 +2,16 @@
     "id": "devtools",
     "name": "PLG_DEVTOOLS_NAME",
     "description": "PLG_DEVTOOLS_DESCRIPTION",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "author": "Reinhold Kainhofer",
     "url": "https://github.com/kainhofer/admidio-devtools/",
     "icon": "bi-tools",
     "requires": {
         "admidio": ">=6.0",
         "php": ">=8.2",
-        "extensions": ["zlib"]
+        "extensions": [
+            "zlib"
+        ]
     },
     "autoload": {
         "AdmidioPlugin\\DevTools\\": "src/"
@@ -47,12 +49,6 @@
             "default": true,
             "label": "PLG_DEVTOOLS_EXCEPTION_CATCHER",
             "description": "PLG_DEVTOOLS_EXCEPTION_CATCHER_DESC"
-        },
-        "devtools_language_switcher": {
-            "type": "boolean",
-            "default": true,
-            "label": "PLG_DEVTOOLS_LANGUAGE_SWITCHER",
-            "description": "PLG_DEVTOOLS_LANGUAGE_SWITCHER_DESC"
         },
         "devtools_php_binary": {
             "type": "string",

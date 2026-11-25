@@ -19,16 +19,15 @@ in `adm_my_files/config.php`. The menu entry *DevTools* appears below *Administr
 
 | Page | What it does |
 |---|---|
-| Snapshots | Take a snapshot of the files and the database; delete snapshots; show the restore key. |
+| Snapshots | Take a snapshot of the files and the database; edit label and comment; restore or delete it; show the restore key; change the snapshot directory. |
 | Restore page | Restore a snapshot – works without Admidio, even when an update broke the installation. |
-| Hook inspector | All registered hook callbacks with owner and source location, all dispatch sites in core and plugins, and the problems both show together (hooks nobody dispatches, plugin hooks without prefix, filters several plugins change). |
-| Hook traces | The hook callbacks of the last 50 requests in order, with duration, arguments, and for filters the value before and after. Switch on *Hook trace* in the settings. |
+| Hook inspector | Every hook with its callbacks (owner, source location, priority) and the places that dispatch it, and the problems both show together (hooks nobody dispatches, plugin hooks without prefix, filters several plugins change). |
+| Hook traces | The hook callbacks of the last 50 requests in order, with duration, arguments, and for filters the value before and after. Switched on and off on the page. |
 | Logs & errors | The Admidio, CLI and core-update logs and the PHP error log, filtered by level and text; every exception that ended a request, with stack trace. |
-| CLI tasks | All commands and maintenance jobs of the `admidio` command line; run them from the browser. |
-| Mail catcher | *Catch* (default): no mail leaves the installation, every mail is kept with HTML preview, text and `.eml`. *Redirect*: every mail goes to one address. |
+| Maintenance jobs | The maintenance jobs with their last run, the runs per organization from the CLI log (failed runs, cron overdue), and running them now. |
+| CLI console | The `admidio` command line in the browser, with the documentation of every command grouped by area. |
+| Mail catcher | *Catch* (default): no mail leaves the installation, every mail is kept with HTML preview, text and `.eml`. *Redirect*: every mail goes to one address. The mode is switched on the page. |
 | Preferences diff | The preferences of an organization compared with their defaults: changed, missing and unknown. |
-| Organizations | Switch to another organization without logging out. |
-| Language switcher | A menu in the header bar that changes the language of your own session only. |
 | New plugin | Create the skeleton of a new plugin (also `admidio devtools:make-plugin`). |
 
 ## Snapshots and restore
@@ -45,7 +44,9 @@ Files are stored once by their SHA-256, so a second snapshot only costs the chan
 database dump. MySQL/MariaDB are dumped with PDO; PostgreSQL needs `pg_dump` and `psql`.
 
 The snapshots are kept in `adm_my_files/snapshots/`. Another directory – ideally outside the web
-root, writable by the web server – can be set in `adm_my_files/config.php`:
+root, writable by the web server – can be chosen on the snapshot page (stored in
+`adm_my_files/devtools/snapshot-path.php`, which no restore changes), or set in
+`adm_my_files/config.php`, which takes precedence:
 
 ```php
 $gDevToolsSnapshotPath = '/var/lib/admidio-snapshots';
@@ -77,8 +78,15 @@ test, restore *baseline*, update to PR B, test, …
 ## Settings
 
 *Administration → Preferences → System → DevTools*: mail catcher mode and redirect address, hook
-trace, exception catcher, language switcher, path of the PHP command-line binary (empty: found
-automatically).
+trace, exception catcher, path of the PHP command-line binary (empty: found automatically).
+
+The language switcher and the organization switcher of earlier versions are separate plugins now:
+`language-switcher` and `organization-switcher`.
+
+## Header bar
+
+The *DevTools* badge uses the filter `page_header_items` of the Admidio core where it exists, and is
+moved into the header bar in the browser otherwise.
 
 ## Limits
 

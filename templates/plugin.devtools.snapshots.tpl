@@ -50,8 +50,26 @@
             <dd class="col-sm-9"><code>{$restoreCommand|escape}</code></dd>
             <dt class="col-sm-3">{$l10n->get('PLG_DEVTOOLS_SNAPSHOT_DIRECTORY')}</dt>
             <dd class="col-sm-9"><code>{$snapshotPath|escape}</code>
-                <div class="form-text">{$l10n->get('PLG_DEVTOOLS_SNAPSHOT_DIRECTORY_DESC')}</div>
+                {if $snapshotPathSource != 'config'}
+                    <a class="btn btn-sm btn-outline-secondary ms-2" data-bs-toggle="collapse" href="#adm_plg_devtools_directory" role="button" aria-expanded="false"><i class="bi bi-gear"></i> {$l10n->get('PLG_DEVTOOLS_SNAPSHOT_DIRECTORY_CHANGE')}</a>
+                {/if}
                 {if $snapshotPathInWebRoot}<div class="form-text text-warning">{$l10n->get('PLG_DEVTOOLS_SNAPSHOT_DIRECTORY_IN_WEBROOT')}</div>{/if}
+                {if $snapshotPathSource == 'config'}
+                    <div class="form-text">{$l10n->get('PLG_DEVTOOLS_SNAPSHOT_DIRECTORY_FROM_CONFIG')}</div>
+                {else}
+                    <form id="adm_plg_devtools_directory" method="post" action="{$directoryUrl}" class="collapse mt-2">
+                        <input type="hidden" name="adm_csrf_token" value="{$devtoolsCsrfToken}">
+                        <div class="input-group">
+                            <input class="form-control font-monospace" name="path" value="{$snapshotPathSetting|escape}" placeholder="/var/lib/admidio-snapshots">
+                            <button type="submit" class="btn btn-primary">{$l10n->get('SYS_SAVE')}</button>
+                        </div>
+                        <div class="form-check mt-1">
+                            <input class="form-check-input" type="checkbox" id="devtools_move" name="move" value="1" checked>
+                            <label class="form-check-label" for="devtools_move">{$l10n->get('PLG_DEVTOOLS_SNAPSHOT_DIRECTORY_MOVE')}</label>
+                        </div>
+                        <div class="form-text">{$l10n->get('PLG_DEVTOOLS_SNAPSHOT_DIRECTORY_DESC')}</div>
+                    </form>
+                {/if}
             </dd>
         </dl>
     </div>
@@ -76,14 +94,25 @@
             <tbody>
                 {foreach $snapshots as $snapshot}
                     <tr>
-                        <td><strong>{$snapshot.name|escape}</strong><br><small class="text-muted">{$snapshot.created|escape} &middot; PHP {$snapshot.php|escape} &middot; {$snapshot.dbType|escape} {$snapshot.dbVersion|escape}</small></td>
+                        <td><strong>{if $snapshot.label != ''}{$snapshot.label|escape}{else}{$snapshot.name|escape}{/if}</strong>
+                            <br><small class="text-muted">{$snapshot.name|escape} &middot; PHP {$snapshot.php|escape} &middot; {$snapshot.dbType|escape} {$snapshot.dbVersion|escape}</small></td>
                         <td>{$snapshot.version|escape}</td>
-                        <td>{$snapshot.comment|escape}</td>
+                        <td>{$snapshot.comment|escape}
+                            <form method="post" action="{$updateUrl}" class="collapse mt-2" id="adm_plg_devtools_edit_{$snapshot@iteration}">
+                                <input type="hidden" name="adm_csrf_token" value="{$devtoolsCsrfToken}">
+                                <input type="hidden" name="snapshot" value="{$snapshot.name|escape}">
+                                <input class="form-control form-control-sm mb-1" name="label" maxlength="60" value="{$snapshot.label|escape}" placeholder="{$l10n->get('PLG_DEVTOOLS_SNAPSHOT_LABEL')}">
+                                <textarea class="form-control form-control-sm mb-1" name="comment" rows="2" maxlength="1000" placeholder="{$l10n->get('PLG_DEVTOOLS_SNAPSHOT_COMMENT')}">{$snapshot.comment|escape}</textarea>
+                                <button type="submit" class="btn btn-sm btn-primary">{$l10n->get('SYS_SAVE')}</button>
+                            </form>
+                        </td>
                         <td>{if $snapshot.includeData}{$l10n->get('PLG_DEVTOOLS_SNAPSHOT_SCOPE_DATA')}{else}{$l10n->get('PLG_DEVTOOLS_SNAPSHOT_SCOPE_CODE')}{/if}</td>
                         <td>{$snapshot.fileCount} ({$snapshot.fileSizeText})</td>
                         <td>{$snapshot.tableCount} / {$snapshot.rowCount} ({$snapshot.databaseSizeText})</td>
-                        <td>
-                            <form method="post" action="{$deleteUrl}" onsubmit="return confirm('{$l10n->get('PLG_DEVTOOLS_SNAPSHOT_DELETE_CONFIRM')|escape:'javascript'}');">
+                        <td class="text-nowrap">
+                            <a class="btn btn-sm btn-outline-warning" href="{$snapshot.restoreUrl|escape}" target="_blank" rel="noopener" title="{$l10n->get('PLG_DEVTOOLS_RESTORE_BUTTON')}"><i class="bi bi-arrow-counterclockwise"></i></a>
+                            <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" href="#adm_plg_devtools_edit_{$snapshot@iteration}" role="button" title="{$l10n->get('PLG_DEVTOOLS_SNAPSHOT_EDIT')}"><i class="bi bi-pencil-square"></i></a>
+                            <form method="post" action="{$deleteUrl}" class="d-inline" onsubmit="return confirm('{$l10n->get('PLG_DEVTOOLS_SNAPSHOT_DELETE_CONFIRM')|escape:'javascript'}');">
                                 <input type="hidden" name="adm_csrf_token" value="{$devtoolsCsrfToken}">
                                 <input type="hidden" name="snapshot" value="{$snapshot.name|escape}">
                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="{$l10n->get('SYS_DELETE')}"><i class="bi bi-trash"></i></button>

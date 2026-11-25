@@ -12,7 +12,7 @@ final class DevToolsManifestTest extends TestCase
 
         $this->assertTrue($plugin->isValid(), (string)$plugin->error);
         $this->assertSame('devtools', $plugin->id);
-        foreach (array('index.php', 'snapshots.php', 'restore.php', 'hooks.php', 'traces.php', 'logs.php', 'tasks.php', 'mails.php', 'preferences.php', 'organizations.php', 'scaffold.php', 'language.php') as $page) {
+        foreach (array('index.php', 'snapshots.php', 'restore.php', 'hooks.php', 'traces.php', 'logs.php', 'maintenance.php', 'console.php', 'mails.php', 'preferences.php', 'scaffold.php') as $page) {
             $this->assertContains($page, $plugin->getPages());
         }
         $this->assertSame('catch', $plugin->settings['devtools_mail_mode']['default'] ?? null);
@@ -48,7 +48,7 @@ final class DevToolsManifestTest extends TestCase
             }
         }
         // the description of every page is built from its label
-        foreach (array('OVERVIEW', 'SNAPSHOTS', 'HOOKS', 'HOOK_TRACES', 'LOGS', 'TASKS', 'MAILS', 'PREFERENCES_DIFF', 'ORGANIZATIONS', 'SCAFFOLD') as $page) {
+        foreach (array('OVERVIEW', 'SNAPSHOTS', 'HOOKS', 'HOOK_TRACES', 'LOGS', 'MAINTENANCE', 'CONSOLE', 'MAILS', 'PREFERENCES_DIFF', 'SCAFFOLD') as $page) {
             $used[] = 'PLG_DEVTOOLS_' . $page . '_DESC';
         }
         $missing = array_diff(array_unique($used), $files['en']);

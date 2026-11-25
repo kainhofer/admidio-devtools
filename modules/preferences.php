@@ -15,7 +15,6 @@
  */
 
 use AdmidioPlugin\DevTools\DevTools;
-use AdmidioPlugin\DevTools\Organizations\OrganizationSwitcher;
 use AdmidioPlugin\DevTools\Preferences\PreferencesDiff;
 
 try {
@@ -26,7 +25,11 @@ try {
 
     $getOrganization = admFuncVariableIsValid($_GET, 'org', 'int', array('defaultValue' => (int)$gCurrentOrgId));
 
-    $organizations = (new OrganizationSwitcher($gDb))->getOrganizations((int)$gCurrentUserId, (int)$gCurrentOrgId);
+    $organizations = array();
+    $statement = $gDb->queryPrepared('SELECT org_id, org_shortname, org_longname FROM ' . TBL_ORGANIZATIONS . ' ORDER BY org_longname');
+    while ($row = $statement->fetch()) {
+        $organizations[] = array('id' => (int)$row['org_id'], 'shortname' => $row['org_shortname'], 'longname' => $row['org_longname']);
+    }
     $organizationIds = array_column($organizations, 'id');
     if (!in_array($getOrganization, $organizationIds, true)) {
         $getOrganization = (int)$gCurrentOrgId;

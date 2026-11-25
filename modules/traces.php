@@ -5,7 +5,7 @@
  *
  * Parameters:
  * id   : show the trace with this id
- * mode : delete_all (POST)
+ * mode : delete_all (POST), toggle (POST: switch recording on or off)
  *
  * @copyright Reinhold Kainhofer
  * @see https://www.admidio.org/
@@ -23,7 +23,13 @@ try {
     DevTools::requireAccess();
 
     $getId = admFuncVariableIsValid($_GET, 'id', 'string');
-    $getMode = admFuncVariableIsValid($_GET, 'mode', 'string', array('validValues' => array('show', 'delete_all'), 'defaultValue' => 'show'));
+    $getMode = admFuncVariableIsValid($_GET, 'mode', 'string', array('validValues' => array('show', 'delete_all', 'toggle'), 'defaultValue' => 'show'));
+
+    if ($getMode === 'toggle') {
+        DevTools::requirePost();
+        DevTools::saveSetting('devtools_hook_trace', $gSettingsManager->getBool('devtools_hook_trace') ? '0' : '1');
+        admRedirect(DevTools::url('traces.php'));
+    }
 
     if ($getMode === 'delete_all') {
         DevTools::requirePost();
@@ -54,6 +60,7 @@ try {
     $page->assignSmartyVariable('traces', $traces);
     $page->assignSmartyVariable('listUrl', DevTools::url('traces.php'));
     $page->assignSmartyVariable('deleteUrl', DevTools::url('traces.php', array('mode' => 'delete_all')));
+    $page->assignSmartyVariable('toggleUrl', DevTools::url('traces.php', array('mode' => 'toggle')));
     $page->show();
 } catch (Throwable $e) {
     handleException($e);

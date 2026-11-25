@@ -20,6 +20,7 @@ final class SnapshotRoundTripTest extends TestCase
     private const PREFIX = 'dvtrt';
 
     private string $root = '';
+    private string $moved = '';
     private ?PDO $pdo = null;
 
     protected function setUp(): void
@@ -80,6 +81,9 @@ final class SnapshotRoundTripTest extends TestCase
         }
         if ($this->root !== '') {
             SnapshotStore::removeTree($this->root);
+        }
+        if ($this->moved !== '') {
+            SnapshotStore::removeTree($this->moved);
         }
     }
 
@@ -151,13 +155,28 @@ final class SnapshotRoundTripTest extends TestCase
         $this->assertSame(0, (int)$this->pdo->query('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = \'' . self::PREFIX . '_added\'')->fetchColumn());
         $this->assertSame(1, (int)$this->pdo->query('SELECT COUNT(*) FROM ' . self::PREFIX . '_links')->fetchColumn());
 
+        // label and comment can be changed, the name stays
+        $store->update($manifest['name'], 'Renamed', 'new comment');
+        $this->assertSame(array('Renamed', 'new comment', $manifest['name']), array($store->list()[0]['label'], $store->list()[0]['comment'], $store->list()[0]['name']));
+
         // restoring again changes no file; without keeping the logins those of the snapshot apply
         $again = (new SnapshotRestorer($store))->restore($manifest['name'], false);
         $this->assertSame(0, $again['written']);
         $this->assertSame('old', $this->pdo->query('SELECT ses_session_id FROM ' . self::PREFIX . '_sessions')->fetchColumn());
         $this->assertSame(0, (int)$this->pdo->query('SELECT COUNT(*) FROM ' . self::PREFIX . '_auto_login')->fetchColumn());
+        // moving the snapshot directory keeps everything restorable
+        $target = $this->root . '-moved';
+        $store->moveTo($target);
+        SnapshotConfig::writePointer($this->root, $target);
+        $moved = new SnapshotStore(SnapshotConfig::load($this->root));
+        $this->assertSame($target, $moved->getConfig()->snapshotPath);
+        $this->assertDirectoryDoesNotExist($this->root . '/adm_my_files/snapshots');
+        (new SnapshotRestorer($moved))->verify($manifest['name']);
+        $store = $moved;
+        $this->moved = $target;
+
         $store->delete($manifest['name']);
         $this->assertSame(array(), $store->list());
-        $this->assertSame(array(), glob($this->root . '/adm_my_files/snapshots/objects/*/*') ?: array());
+        $this->assertSame(array(), glob($target . '/objects/*/*') ?: array());
     }
 }

@@ -28,6 +28,7 @@ use AdmidioPlugin\DevTools\Snapshot\SnapshotStore;
 final class DevTools
 {
     public const ID = 'devtools';
+    private const CORE_PAGE_EXTENSIONS = 'Admidio\\UI\\Component\\PageExtensions';
 
     /**
      * The pages of the plugin in the order of the navigation: file => array(text key, icon).
@@ -38,10 +39,10 @@ final class DevTools
         'hooks.php' => array('PLG_DEVTOOLS_HOOKS', 'bi-plug'),
         'traces.php' => array('PLG_DEVTOOLS_HOOK_TRACES', 'bi-activity'),
         'logs.php' => array('PLG_DEVTOOLS_LOGS', 'bi-journal-text'),
-        'tasks.php' => array('PLG_DEVTOOLS_TASKS', 'bi-terminal'),
+        'maintenance.php' => array('PLG_DEVTOOLS_MAINTENANCE', 'bi-wrench-adjustable'),
+        'console.php' => array('PLG_DEVTOOLS_CONSOLE', 'bi-terminal'),
         'mails.php' => array('PLG_DEVTOOLS_MAILS', 'bi-envelope'),
         'preferences.php' => array('PLG_DEVTOOLS_PREFERENCES_DIFF', 'bi-sliders'),
-        'organizations.php' => array('PLG_DEVTOOLS_ORGANIZATIONS', 'bi-diagram-2'),
         'scaffold.php' => array('PLG_DEVTOOLS_SCAFFOLD', 'bi-box-seam')
     );
 
@@ -69,7 +70,14 @@ final class DevTools
             return $componentName === self::ID ? $visible && self::isAdministrator() : $visible;
         }, Hooks::DEFAULT_PRIORITY, 3, self::ID . '-menu');
 
-        Hooks::addAction('page_before_render', array(self::class, 'decoratePage'), Hooks::DEFAULT_PRIORITY, 1, self::ID . '-header');
+        // The badge in the header bar: through the filter of the core where it has one, otherwise
+        // moved into the header bar in the browser.
+        Hooks::addAction('page_before_render', array(self::class, 'addStyles'), Hooks::DEFAULT_PRIORITY, 1, self::ID . '-styles');
+        if (class_exists(self::CORE_PAGE_EXTENSIONS)) {
+            Hooks::addFilter('page_header_items', array(self::class, 'addHeaderItems'), Hooks::DEFAULT_PRIORITY, 1, self::ID . '-header');
+        } else {
+            Hooks::addAction('page_before_render', array(self::class, 'decoratePage'), Hooks::DEFAULT_PRIORITY, 1, self::ID . '-header');
+        }
 
         if ($gSettingsManager->getBool('devtools_exception_catcher')) {
             Hooks::addAction('exception_terminating', array(ExceptionCatcher::class, 'store'), Hooks::DEFAULT_PRIORITY, 2, self::ID . '-exceptions');
@@ -196,40 +204,101 @@ final class DevTools
     }
 
     /**
-     * Callback of **page_before_render**: the DevTools badge and the language switcher in the header
-     * bar. Content loaded into a dialog or a reduced page is left alone.
+     * A duration as "3 d 4 h", "2 h 5 min" or "40 s".
+     */
+    public static function formatDuration(int $seconds): string
+    {
+        $seconds = max(0, $seconds);
+        if ($seconds >= 86400) {
+            return intdiv($seconds, 86400) . ' d ' . intdiv($seconds % 86400, 3600) . ' h';
+        }
+        if ($seconds >= 3600) {
+            return intdiv($seconds, 3600) . ' h ' . intdiv($seconds % 3600, 60) . ' min';
+        }
+        if ($seconds >= 60) {
+            return intdiv($seconds, 60) . ' min';
+        }
+        return $seconds . ' s';
+    }
+
+    /**
+     * Change a setting of the plugin in the current organization, from a page of the plugin.
+     * @param string $name A setting of plugin.json.
+     */
+    public static function saveSetting(string $name, string $value): void
+    {
+        global $gSettingsManager;
+
+        if (!array_key_exists($name, self::getPlugin()->settings)) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
+        }
+        $gSettingsManager->set($name, $value);
+    }
+
+    /**
+     * The badge and the mail catcher state, as items of the header bar.
+     * @return array<int,array<string,mixed>>
+     */
+    private static function getBadges(): array
+    {
+        global $gL10n, $gSettingsManager;
+
+        $badges = array(array(
+            'id' => self::ID,
+            'label' => $gL10n->get('PLG_DEVTOOLS_BADGE'),
+            'icon' => 'bi-tools',
+            'tooltip' => $gL10n->get('PLG_DEVTOOLS_BADGE_DESC'),
+            'url' => self::isAdministrator() ? self::getPlugin()->getUrl('index.php') : '',
+            // own colors: the theme makes the text of every .btn white
+            'class' => 'admidio-devtools-badge',
+            'sequence' => 10
+        ));
+        $mode = $gSettingsManager->getString('devtools_mail_mode');
+        if ($mode !== MailCatcher::MODE_OFF) {
+            $badges[] = array(
+                'id' => self::ID . '-mail',
+                'label' => '',
+                'icon' => $mode === MailCatcher::MODE_CATCH ? 'bi-envelope-slash' : 'bi-envelope-arrow-up',
+                'tooltip' => $gL10n->get('PLG_DEVTOOLS_MAIL_MODE_' . strtoupper($mode)),
+                'url' => self::isAdministrator() ? self::getPlugin()->getUrl('mails.php') : '',
+                'class' => 'admidio-devtools-badge-mail',
+                'sequence' => 11
+            );
+        }
+        return $badges;
+    }
+
+    /**
+     * Callback of **page_before_render**: the styles of the badges, which are on every page.
+     */
+    public static function addStyles(PagePresenter $page): void
+    {
+        $page->addCssFile(self::getPlugin()->getAssetUrl('devtools.css'));
+    }
+
+    /**
+     * Callback of **page_header_items**.
+     * @param array<int,array<string,mixed>> $items
+     * @return array<int,array<string,mixed>>
+     */
+    public static function addHeaderItems(array $items): array
+    {
+        return array_merge($items, self::getBadges());
+    }
+
+    /**
+     * Callback of **page_before_render** for a core without page_header_items: the badges, moved into
+     * the header bar in the browser. Content loaded into a dialog or a reduced page is left alone.
      */
     public static function decoratePage(PagePresenter $page): void
     {
-        global $gLayoutReduced, $gSettingsManager, $gL10n;
+        global $gLayoutReduced;
 
         if (!empty($gLayoutReduced) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest') {
             return;
         }
 
-        $plugin = self::getPlugin();
-        $isAdministrator = self::isAdministrator();
-        $languages = array();
-
-        if ($isAdministrator && $gSettingsManager->getBool('devtools_language_switcher')) {
-            foreach ($gL10n->getAvailableLanguages() as $code => $name) {
-                $languages[] = array(
-                    'code' => $code,
-                    'name' => $name,
-                    'url' => self::url('language.php', array('language' => $code)),
-                    'active' => $code === $gL10n->getLanguage()
-                );
-            }
-        }
-
-        $page->addCssFile($plugin->getAssetUrl('devtools.css'));
-        $page->addHtml($plugin->renderTemplate($page, 'plugin.devtools.header.tpl', array(
-            'devtoolsUrl' => $isAdministrator ? $plugin->getUrl('index.php') : '',
-            'devtoolsLanguages' => $languages,
-            'devtoolsCurrentLanguage' => $gL10n->getLanguage(),
-            'devtoolsMailMode' => $gSettingsManager->getString('devtools_mail_mode')
-        )));
-        // The header bar is part of the page frame; the content is rendered into the main column.
+        $page->addHtml(self::getPlugin()->renderTemplate($page, 'plugin.devtools.header.tpl', array('devtoolsBadges' => self::getBadges())));
         $page->addJavascript('
             var devtoolsHeader = $("#adm_plg_devtools_header");
             var devtoolsTarget = $("#adm_main_navbar .ms-auto").first();

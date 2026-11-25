@@ -5,7 +5,8 @@
  *
  * Parameters:
  * id   : show this mail
- * mode : show (default), html (the HTML body for the preview frame), eml (download), delete_all (POST)
+ * mode : show (default), html (the HTML body for the preview frame), eml (download), delete_all (POST),
+ *        settings (POST: mail_mode, redirect_address)
  *
  * @copyright Reinhold Kainhofer
  * @see https://www.admidio.org/
@@ -24,7 +25,19 @@ try {
     DevTools::requireAccess();
 
     $getId = admFuncVariableIsValid($_GET, 'id', 'string');
-    $getMode = admFuncVariableIsValid($_GET, 'mode', 'string', array('validValues' => array('show', 'html', 'eml', 'delete_all'), 'defaultValue' => 'show'));
+    $getMode = admFuncVariableIsValid($_GET, 'mode', 'string', array('validValues' => array('show', 'html', 'eml', 'delete_all', 'settings'), 'defaultValue' => 'show'));
+
+    if ($getMode === 'settings') {
+        DevTools::requirePost();
+        $mailMode = (string)($_POST['mail_mode'] ?? '');
+        if (!in_array($mailMode, array(MailCatcher::MODE_CATCH, MailCatcher::MODE_REDIRECT, MailCatcher::MODE_OFF), true)) {
+            throw new Exception('SYS_INVALID_PAGE_VIEW');
+        }
+        DevTools::saveSetting('devtools_mail_mode', $mailMode);
+        DevTools::saveSetting('devtools_mail_redirect_address', trim((string)($_POST['redirect_address'] ?? '')));
+        DevTools::flash('success', $gL10n->get('SYS_SAVE_DATA'));
+        admRedirect(DevTools::url('mails.php'));
+    }
 
     if ($getMode === 'delete_all') {
         DevTools::requirePost();
@@ -67,7 +80,13 @@ try {
     $mode = $gSettingsManager->getString('devtools_mail_mode');
     $page = DevTools::createPage('mails.php', 'plugin.devtools.mails.tpl');
     $page->assignSmartyVariable('mailMode', $mode);
-    $page->assignSmartyVariable('mailModeText', $gL10n->get('PLG_DEVTOOLS_MAIL_MODE_' . strtoupper($mode)));
+    $page->assignSmartyVariable('mailModes', array(
+        MailCatcher::MODE_CATCH => $gL10n->get('PLG_DEVTOOLS_MAIL_MODE_CATCH'),
+        MailCatcher::MODE_REDIRECT => $gL10n->get('PLG_DEVTOOLS_MAIL_MODE_REDIRECT'),
+        MailCatcher::MODE_OFF => $gL10n->get('PLG_DEVTOOLS_MAIL_MODE_OFF')
+    ));
+    $page->assignSmartyVariable('redirectAddress', $gSettingsManager->getString('devtools_mail_redirect_address'));
+    $page->assignSmartyVariable('settingsUrl', DevTools::url('mails.php', array('mode' => 'settings')));
     $page->assignSmartyVariable('mails', $mails);
     $page->assignSmartyVariable('mail', $mail);
     $page->assignSmartyVariable('listUrl', DevTools::url('mails.php'));

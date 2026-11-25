@@ -55,4 +55,31 @@ final class FileScannerTest extends TestCase
         $this->assertSame('/var/snaps', SnapshotConfig::resolveSnapshotPath('/srv/a', '/var/snaps/'));
         $this->assertSame('/srv/a/adm_my_files/snaps', SnapshotConfig::resolveSnapshotPath('/srv/a', 'snaps'));
     }
+
+    public function testSnapshotDirectoryChosenOnThePage(): void
+    {
+        $root = sys_get_temp_dir() . '/devtools-pointer-' . bin2hex(random_bytes(4));
+        mkdir($root . '/adm_my_files', 0777, true);
+        file_put_contents($root . '/adm_my_files/config.php', "<?php\n\$g_tbl_praefix = 'adm';\n");
+
+        try {
+            $this->assertSame(SnapshotConfig::SOURCE_DEFAULT, SnapshotConfig::load($root)->snapshotPathSource);
+
+            SnapshotConfig::writePointer($root, '/var/snaps');
+            $config = SnapshotConfig::load($root);
+            $this->assertSame('/var/snaps', $config->snapshotPath);
+            $this->assertSame(SnapshotConfig::SOURCE_PAGE, $config->snapshotPathSource);
+            $this->assertFalse((new FileScanner($config, true))->inScope('adm_my_files/devtools/snapshot-path.php'), 'no restore may change the choice');
+
+            file_put_contents($root . '/adm_my_files/config.php', "<?php\n\$g_tbl_praefix = 'adm';\n\$gDevToolsSnapshotPath = '/srv/other';\n");
+            $config = SnapshotConfig::load($root);
+            $this->assertSame('/srv/other', $config->snapshotPath, 'config.php takes precedence');
+            $this->assertSame(SnapshotConfig::SOURCE_CONFIG, $config->snapshotPathSource);
+
+            SnapshotConfig::writePointer($root, '');
+            $this->assertSame('', SnapshotConfig::readPointer($root));
+        } finally {
+            \AdmidioPlugin\DevTools\Snapshot\SnapshotStore::removeTree($root);
+        }
+    }
 }
